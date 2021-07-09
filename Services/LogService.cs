@@ -13,7 +13,6 @@ namespace LeagueDiscordBot.Services
     {
         private readonly DiscordSocketClient _discord;
         private readonly CommandService _commands;
-        private readonly ILoggerFactory _loggerFactory;
 
         public LogService(DiscordSocketClient discord, CommandService commands)
         {
