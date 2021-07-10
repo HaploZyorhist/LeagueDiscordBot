@@ -9,7 +9,7 @@ namespace LeagueDiscordBot.Commands
 {
     public class Ping : ModuleBase
     {
-        [RequireUserPermission(Discord.GuildPermission.AddReactions, Group = "Permission")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator, Group = "Permission")]
         [Command("ping")]
         public async Task PingCommand()
         {
