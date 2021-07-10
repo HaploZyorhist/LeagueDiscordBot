@@ -10,13 +10,32 @@ using System.Threading.Tasks;
 
 namespace LeagueDiscordBot.Services
 {
+    /// <summary>
+    /// service class for handling commands
+    /// </summary>
     public class CommandHandlerService
     {
+
+        #region Fields
+
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _client;
         private IServiceProvider _provider;
         private LogService _logs;
 
+        //const client = new Discord.Client();
+
+        #endregion
+
+        #region CTOR
+
+        /// <summary>
+        /// CTOR for class
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="provider"></param>
+        /// <param name="commands"></param>
+        /// <param name="logs"></param>
         public CommandHandlerService(DiscordSocketClient client, 
                                      IServiceProvider provider, 
                                      CommandService commands,
@@ -30,44 +49,140 @@ namespace LeagueDiscordBot.Services
             _client.MessageReceived += MessageReceived;
         }
 
+        #endregion
+
+        #region CommandHandler
+
+        /// <summary>
+        /// Task for setting up the class
+        /// </summary>
+        /// <param name="provider"></param>
         public async Task InitializeAsync(IServiceProvider provider)
         {
             _provider = provider;
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
-            //_client.Log += Log;
-            //_provider = provider;
-            //await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
         }
 
+        /// <summary>
+        /// Message handler, should manage the commands
+        /// </summary>
+        /// <param name="message"></param>
         private async Task MessageReceived(SocketMessage message)
         {
-            if (message.Content == "!ping")
+            var prefix = Environment.GetEnvironmentVariable("prefix");
+
+            string input = null;
+            string command = null;
+            string instruction = null;
+
+            if (!(message is SocketUserMessage socketMessage))
             {
-                var log = new LogMessage
-                {
-                    Severity = Discord.LogSeverity.Info,
-                    Message = "Ping was pressed",
-                    Source = nameof(MessageReceived)
-                };
-
-                await _logs.Log(new Discord.LogMessage(log.Severity, log.Source, log.Message));
-
-                await message.Channel.SendMessageAsync("Pong!");
+                return;
             }
 
-            if (message.Content == "!coding is fun")
+            if (message.Source != Discord.MessageSource.User)
             {
-                var log = new LogMessage
+                return;
+            }
+
+            if (!(message.ToString().StartsWith(prefix)))
+            {
+                return;
+            }
+
+            var context = new SocketCommandContext(_client, socketMessage);
+
+            await _commands.ExecuteAsync(context, prefix.Length, _provider);
+
+            //if(message.Source != Discord.MessageSource.Bot && message.Content.StartsWith(prefix))
+            //{
+            //    try
+            //    {
+            //        input = message.Content.Remove(0, prefix.Length);
+            //        command = input.Split(" ")[0];
+            //        instruction = input.Remove(0, command.Length).Trim();
+
+            //        if (string.IsNullOrEmpty(command))
+            //        {
+            //            return;
+            //        }
+
+            //        // a test method, will be removed
+            //        if (command.ToLower() == "ping")
+            //        {
+            //            Ping(message, instruction);
+            //        }
+
+            //        // Method for setting custom prefixes for the bot
+            //        if (message.Content.ToLower().Contains("!prefix") || 
+            //            command.ToLower() == "prefix")
+            //        {
+            //            Prefix(message, instruction);
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        var log = new LogMessage
+            //        {
+            //            Severity = Discord.LogSeverity.Error,
+            //            Message = ex.Message,
+            //            SourceClass = nameof(CommandHandlerService),
+            //            SourceMethod = nameof(MessageReceived)
+            //        };
+
+            //        await _logs.ManualLog(log);
+            //        await message.Channel.SendMessageAsync($"{command} failed");
+            //    }
+            //}
+        }
+
+        #endregion
+
+        #region Commands
+
+        /// <summary>
+        /// Ping test command tree
+        /// </summary>
+        /// <param name="instruction"></param>
+        public async void Ping(SocketMessage message, string instruction)
+        {
+
+        }
+
+        /// <summary>
+        /// Command for changing the prefix of the bot
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="instruction"></param>
+        public async void Prefix(SocketMessage message, string instruction)
+        {
+            string newPrefix = "";
+            try
+            {
+                if (instruction.Length > 0 && instruction.Length < 4)
                 {
-                    Severity = Discord.LogSeverity.Info,
-                    Message = "coding message",
-                    Source = nameof(MessageReceived)
-                };
+                    newPrefix = instruction;
 
-                await _logs.Log(new Discord.LogMessage(log.Severity, log.Source, log.Message));
+                    var log = new LogMessage
+                    {
+                        Severity = Discord.LogSeverity.Info,
+                        Message = "Prefix was reset",
+                        SourceClass = nameof(CommandHandlerService),
+                        SourceMethod = nameof(Prefix)
+                    };
 
-                await message.Channel.SendMessageAsync("You're a fucking liar!");
+                    Environment.SetEnvironmentVariable("prefix", newPrefix);
+
+                    await _logs.ManualLog(log);
+                    await message.Channel.SendMessageAsync($"your prefix was changed to {newPrefix}");
+                }
+            }
+            catch (Exception ex)
+            {
+
             }
         }
+
+        #endregion
     }
 }
