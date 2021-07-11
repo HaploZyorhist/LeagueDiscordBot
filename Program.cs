@@ -1,16 +1,21 @@
-﻿using Discord;
+﻿using Autofac;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Interactivity;
+using LeagueDiscordBot.Database.Context;
 using LeagueDiscordBot.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace LeagueDiscordBot
 {
-	public class Program
+    public class Program
 	{
 		private DiscordSocketClient _client;
 
@@ -24,7 +29,7 @@ namespace LeagueDiscordBot
 
 			await services.GetRequiredService<CommandHandlerService>().InitializeAsync(services);
 			
-			var token = File.ReadAllText(@"..\..\..\token.json");
+			var token = Environment.GetEnvironmentVariable("token");
 			await _client.LoginAsync(TokenType.Bot, token);
 				//Environment.GetEnvironmentVariable("DiscordToken"));
 			await _client.StartAsync();
@@ -33,13 +38,15 @@ namespace LeagueDiscordBot
 			await Task.Delay(-1);
 		}
 
-        private IServiceProvider ConfigureServices()
+		private IServiceProvider ConfigureServices()
 		{
 			return new ServiceCollection()
 				// Base
 				.AddSingleton(_client)
 				.AddSingleton<CommandService>()
 				.AddSingleton<CommandHandlerService>()
+				.AddSingleton<InteractivityService>()
+				.AddSingleton<LoLDBContext>()
 
 				// Logs
 				.AddSingleton<LogService>()

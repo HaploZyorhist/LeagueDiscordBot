@@ -71,10 +71,6 @@ namespace LeagueDiscordBot.Services
         {
             var prefix = Environment.GetEnvironmentVariable("prefix");
 
-            string input = null;
-            string command = null;
-            string instruction = null;
-
             if (!(message is SocketUserMessage socketMessage))
             {
                 return;
@@ -93,61 +89,11 @@ namespace LeagueDiscordBot.Services
             var context = new SocketCommandContext(_client, socketMessage);
 
             await _commands.ExecuteAsync(context, prefix.Length, _provider);
-
-            //if(message.Source != Discord.MessageSource.Bot && message.Content.StartsWith(prefix))
-            //{
-            //    try
-            //    {
-            //        input = message.Content.Remove(0, prefix.Length);
-            //        command = input.Split(" ")[0];
-            //        instruction = input.Remove(0, command.Length).Trim();
-
-            //        if (string.IsNullOrEmpty(command))
-            //        {
-            //            return;
-            //        }
-
-            //        // a test method, will be removed
-            //        if (command.ToLower() == "ping")
-            //        {
-            //            Ping(message, instruction);
-            //        }
-
-            //        // Method for setting custom prefixes for the bot
-            //        if (message.Content.ToLower().Contains("!prefix") || 
-            //            command.ToLower() == "prefix")
-            //        {
-            //            Prefix(message, instruction);
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        var log = new LogMessage
-            //        {
-            //            Severity = Discord.LogSeverity.Error,
-            //            Message = ex.Message,
-            //            SourceClass = nameof(CommandHandlerService),
-            //            SourceMethod = nameof(MessageReceived)
-            //        };
-
-            //        await _logs.ManualLog(log);
-            //        await message.Channel.SendMessageAsync($"{command} failed");
-            //    }
-            //}
         }
 
         #endregion
 
         #region Commands
-
-        /// <summary>
-        /// Ping test command tree
-        /// </summary>
-        /// <param name="instruction"></param>
-        public async void Ping(SocketMessage message, string instruction)
-        {
-
-        }
 
         /// <summary>
         /// Command for changing the prefix of the bot
