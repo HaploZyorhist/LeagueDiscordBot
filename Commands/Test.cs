@@ -13,26 +13,18 @@ namespace LeagueDiscordBot.Commands
     [Summary("Testing the main group")]
     public class Test : ModuleBase
     {
-
         [Command("Test")]
         [Summary("The actual test")]
         public async Task TestCommand()
         {
-            SqlDataReader dataReader;
-            SqlConnection conn = new SqlConnection(Environment.GetEnvironmentVariable("DBConnection"));
-            conn.Open();
-            var response = new SqlCommand(@"select UserID from LoLPlayerData", conn);
-            dataReader = response.ExecuteReader();
-
-            while (dataReader.Read())
-            {
-                var output = dataReader.GetValue(0);
-            }
-
-            dataReader.Close();
-            response.Dispose();
-            conn.Close();
             await ReplyAsync("You have used Test");
+        }
+
+        [Command("NotTest")]
+        [Summary("This is not a test class")]
+        public async Task NotTestCommand()
+        {
+            await ReplyAsync("you have used the not test command");
         }
     }
 }

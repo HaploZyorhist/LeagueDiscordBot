@@ -59,7 +59,7 @@ namespace LeagueDiscordBot.Commands
             {
                 if (command.Module.Group != "Help" && !groups.ContainsKey(command.Module.Group))
                 {
-                    groups.Add(command.Module.Group.ToLower(), command.Module.Summary);
+                    groups.TryAdd(command.Module.Group.ToLower(), command.Module.Summary);
                 }
             }
 
