@@ -81,7 +81,7 @@ namespace LeagueDiscordBot.Commands
                     };
 
                     await _logs.ManualLog(log);
-                    returnString.AppendLine($"<@{id}>" + " Pong!");
+                    returnString.AppendLine($"<@{id}> Pong!");
                 }
                 else
                 {
