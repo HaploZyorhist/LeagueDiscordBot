@@ -3,7 +3,6 @@ using Discord.Commands;
 using LeagueDiscordBot.Modules;
 using LeagueDiscordBot.Services;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,7 +11,7 @@ namespace LeagueDiscordBot.Commands
     [Group("Ping")]
     public class Ping : ModuleBase
     {
-        private LogService _logs;
+        private readonly LogService _logs;
 
         public Ping (LogService logs)
         {

@@ -1,6 +1,5 @@
 ﻿using Autofac.Features.OwnedInstances;
 using Discord.Commands;
-using LeagueDiscordBot.Database.Context;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;

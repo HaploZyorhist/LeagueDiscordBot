@@ -3,7 +3,6 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Interactivity;
-using LeagueDiscordBot.Database.Context;
 using LeagueDiscordBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,7 +45,6 @@ namespace LeagueDiscordBot
 				.AddSingleton<CommandService>()
 				.AddSingleton<CommandHandlerService>()
 				.AddSingleton<InteractivityService>()
-				.AddSingleton<LoLDBContext>()
 
 				// Logs
 				.AddSingleton<LogService>()
