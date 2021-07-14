@@ -1,11 +1,14 @@
 ﻿using Discord.Commands;
 using Interactivity;
+using LeagueDiscordBot.DbContexts;
 using LeagueDiscordBot.DBTables;
+using LeagueDiscordBot.Modules;
 using LeagueDiscordBot.Services;
-using Microsoft.Data.SqlClient;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LeagueDiscordBot.Commands
@@ -17,14 +20,26 @@ namespace LeagueDiscordBot.Commands
     [Summary("This command is used to register and remove players from the game")]
     public class Register : ModuleBase
     {
+        #region Fields
+
         private LogService _logs;
+        private LockOutService _lock;
         private readonly InteractivityService _interact;
 
-        public Register(LogService logs, InteractivityService interact)
+        #endregion
+
+        #region CTOR
+
+        public Register(LogService logs, LockOutService lockout, InteractivityService interact)
         {
             _logs = logs;
+            _lock = lockout;
             _interact = interact;
         }
+
+        #endregion
+
+        #region Commands
 
         [Command(RunMode = RunMode.Async)]
         [Summary("This command registers the player to the bot")]
@@ -36,70 +51,218 @@ namespace LeagueDiscordBot.Commands
 
             try
             {
-                SqlDataReader dataReader;
-                SqlConnection conn = new SqlConnection(Environment.GetEnvironmentVariable("DBConnection"));
-                conn.Open();
-                var response = new SqlCommand(@"select UserID from PlayerData where UserID = '" + user.Id + "'", conn);
-                dataReader = response.ExecuteReader();
+                bool lockCheck = await _lock.CheckLockout(user);
 
-                var isRegistered = false;
-                if (dataReader.HasRows)
+                if (lockCheck)
                 {
-                    isRegistered = true;
-                }
-                
-                dataReader.Close();
-                response.Dispose();
-                conn.Close();
-                
-                if (isRegistered)
-                {
-                    returnString = user.Mention + " is already registered";
+                    returnString = user.Mention + " is currently in another interaction";
                     await ReplyAsync(returnString);
                     return;
                 }
                 else
                 {
-                    returnString = "Please select a name for your character";
+                    await _lock.LockUser(user);
+                }
+
+                LoLBotContext db = new LoLBotContext();
+                var player = db.PlayerData.FirstOrDefault(t => t.UserID == user.Id);
+                PlayerData registration = new PlayerData();
+
+                if (player != null)
+                {
+                    returnString = user.Mention + " is already registered";
+                    await ReplyAsync(returnString);
+
+                    await _logs.ManualLog(new LogMessage
+                        {
+                            User = ulong.Parse(user.Id.ToString()),
+                            TriggerServer = Context.Guild.Name,
+                            TriggerChannel = Context.Channel.Name,
+                            TriggerClass = nameof(Register),
+                            TriggerFunction = nameof(RegisterCommand),
+                            Severity = Discord.LogSeverity.Info,
+                            Message = $"{user.Id} attempted to reregister"
+                        });
+
+                    await _lock.UnlockUser(user);
+                    return;
+                }
+                else
+                {
+                    var nameRegex = ("^[a-zA-Z]{1,15}$");
+                    returnString = $"{user.Mention} Please select a name for your character";
                     await ReplyAsync(returnString);
 
                     var name = await _interact.NextMessageAsync(x => x.Author.Id == user.Id && x.Channel == Context.Channel);
 
+                    var match = Regex.Match(name.Value.ToString(), nameRegex);
+
+                    while (match.Success == false)
+                    {
+                        if (!name.Value.ToString().StartsWith("!"))
+                        {
+                            returnString = $"{user.Mention} Your name was invalid.  Please use only Letters and no spaces";
+                            await ReplyAsync(returnString);
+                        }
+
+                        name = await _interact.NextMessageAsync(x => x.Author.Id == user.Id && x.Channel == Context.Channel);
+                        match = Regex.Match(name.Value.ToString(), nameRegex);
+                    }
+
                     if (name.IsSuccess)
                     {
-                        LoLPlayerBase registration = new LoLPlayerBase
+                        await _logs.ManualLog(new LogMessage
                         {
-                            UserID = user.Id,
-                            CreationDate = DateTime.Now,
-                            Name = name.Value.ToString()
-                        };
+                            User = ulong.Parse(user.Id.ToString()),
+                            TriggerServer = Context.Guild.Name,
+                            TriggerChannel = Context.Channel.Name,
+                            TriggerClass = nameof(Register),
+                            TriggerFunction = nameof(RegisterCommand),
+                            Severity = Discord.LogSeverity.Info,
+                            Message = $"{user.Id} registered with name of {name.Value}"
+                        });
 
-                        SqlDataAdapter adapter = new SqlDataAdapter();
-
-                        string sql = $"insert into PlayerData (UserID, CreationDate, Name) values ('{registration.UserID}', '{registration.CreationDate}', '{registration.Name}')";
-
-                        conn.Open();
-                        response = new SqlCommand(sql, conn);
-
-                        adapter.InsertCommand = response;
-                        adapter.InsertCommand.ExecuteNonQuery();
-
-                        response.Dispose();
-                        conn.Close();
+                        registration.UserID = user.Id;
+                        registration.CreationDate = DateTime.Now;
+                        registration.Name = name.Value.ToString();
                     }
-                }
 
-                await ReplyAsync("You have used register");
+                    db.PlayerData.Add(registration);
+                    db.SaveChanges();
+
+                    await ReplyAsync($"You have registered, welcome {name.Value}");
+
+                    await _lock.UnlockUser(user);
+                }
             }
             catch (Exception ex)
             {
+                await _logs.ManualLog(new LogMessage
+                {
+                    User = ulong.Parse(user.Id.ToString()),
+                    TriggerServer = Context.Guild.Name,
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerClass = nameof(Register),
+                    TriggerFunction = nameof(RegisterCommand),
+                    Severity = Discord.LogSeverity.Error,
+                    Message = $"{user.Id} was unable to register." + ex.Message
+                });
 
+                await _lock.UnlockUser(user);
             }
         }
 
-        public async Task DeleteRegistration ()
+        /// <summary>
+        /// Command that lets the player change their name
+        /// </summary>
+        [Command("ChangeName", RunMode = RunMode.Async)]
+        [Summary("This command registers the player to the bot")]
+        public async Task ChangeName ()
         {
+            string returnString = "";
 
+            var user = Context.User;
+
+            try
+            {
+                bool lockCheck = await _lock.CheckLockout(user);
+
+                if (lockCheck)
+                {
+                    returnString = user.Mention + " is currently in another interaction";
+                    await ReplyAsync(returnString);
+                    return;
+                }
+                else
+                {
+                    await _lock.LockUser(user);
+                }
+
+                LoLBotContext db = new LoLBotContext();
+                var player = db.PlayerData.FirstOrDefault(t => t.UserID == user.Id);
+
+                if (player == null)
+                {
+                    returnString = user.Mention + " is not registered";
+                    await ReplyAsync(returnString);
+
+                    await _logs.ManualLog(new LogMessage
+                    {
+                        User = ulong.Parse(user.Id.ToString()),
+                        TriggerServer = Context.Guild.Name,
+                        TriggerChannel = Context.Channel.Name,
+                        TriggerClass = nameof(Register),
+                        TriggerFunction = nameof(ChangeName),
+                        Severity = Discord.LogSeverity.Info,
+                        Message = $"{user.Id} was not registered, could not change name"
+                    });
+
+                    await _lock.UnlockUser(user);
+                    return;
+                }
+                else
+                {
+                    var nameRegex = ("^[a-zA-Z]{1,15}$");
+                    returnString = $"{user.Mention} Please select a new name for your character";
+                    await ReplyAsync(returnString);
+
+                    var name = await _interact.NextMessageAsync(x => x.Author.Id == user.Id && x.Channel == Context.Channel);
+
+                    var match = Regex.Match(name.Value.ToString(), nameRegex);
+
+                    while (match.Success == false)
+                    {
+                        if (!name.Value.ToString().StartsWith("!"))
+                        {
+                            returnString = $"{user.Mention} Your name was invalid.  Please use only Letters and no spaces";
+                            await ReplyAsync(returnString);
+                        }
+
+                        name = await _interact.NextMessageAsync(x => x.Author.Id == user.Id && x.Channel == Context.Channel);
+                        match = Regex.Match(name.Value.ToString(), nameRegex);
+                    }
+
+                    if (name.IsSuccess)
+                    {
+                        await _logs.ManualLog(new LogMessage
+                        {
+                            User = ulong.Parse(user.Id.ToString()),
+                            TriggerServer = Context.Guild.Name,
+                            TriggerChannel = Context.Channel.Name,
+                            TriggerClass = nameof(Register),
+                            TriggerFunction = nameof(ChangeName),
+                            Severity = Discord.LogSeverity.Info,
+                            Message = $"{user.Id} updated name to {name.Value}"
+                        });
+
+                        player.Name = name.Value.ToString();
+                    }
+
+                    db.PlayerData.Update(player);
+                    db.SaveChanges();
+
+                    await ReplyAsync($"You have updated your name, welcome back {name.Value}");
+
+                    await _lock.UnlockUser(user);
+                }
+            }
+            catch (Exception ex)
+            {
+                await _logs.ManualLog(new LogMessage
+                {
+                    User = ulong.Parse(user.Id.ToString()),
+                    TriggerServer = Context.Guild.Name,
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerClass = nameof(Register),
+                    TriggerFunction = nameof(ChangeName),
+                    Severity = Discord.LogSeverity.Error,
+                    Message = $"{user.Id} was unable to change name. " + ex.Message
+                });
+
+                await _lock.UnlockUser(user);
+            }
         }
+
+        #endregion
     }
 }

@@ -20,18 +20,28 @@ namespace LeagueDiscordBot.Modules
         public string Message { get; set; }
 
         /// <summary>
-        /// initiating method
-        /// </summary>
-        public string SourceMethod { get; set; }
-
-        /// <summary>
-        /// initiating class
-        /// </summary>
-        public string SourceClass { get; set; }
-
-        /// <summary>
         /// user who triggered the log
         /// </summary>
-        public string User { get; set; }
+        public ulong? User { get; set; }
+
+        /// <summary>
+        /// class that triggered log
+        /// </summary>
+        public string TriggerClass { get; set; }
+
+        /// <summary>
+        /// function that triggered log
+        /// </summary>
+        public string TriggerFunction { get; set; }
+
+        /// <summary>
+        /// server that triggered log
+        /// </summary>
+        public string TriggerServer { get; set; }
+
+        /// <summary>
+        /// Channel that triggered log
+        /// </summary>
+        public string TriggerChannel { get; set; }
     }
 }

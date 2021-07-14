@@ -100,34 +100,35 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="message"></param>
         /// <param name="instruction"></param>
-        public async void Prefix(SocketMessage message, string instruction)
-        {
-            string newPrefix = "";
-            try
-            {
-                if (instruction.Length > 0 && instruction.Length < 4)
-                {
-                    newPrefix = instruction;
+        // TODO: Make this into command class
+        //public async void Prefix(SocketMessage message, string instruction)
+        //{
+        //    string newPrefix = "";
+        //    try
+        //    {
+        //        if (instruction.Length > 0 && instruction.Length < 4)
+        //        {
+        //            newPrefix = instruction;
 
-                    var log = new LogMessage
-                    {
-                        Severity = Discord.LogSeverity.Info,
-                        Message = "Prefix was reset",
-                        SourceClass = nameof(CommandHandlerService),
-                        SourceMethod = nameof(Prefix)
-                    };
+        //            var log = new LogMessage
+        //            {
+        //                Severity = Discord.LogSeverity.Info,
+        //                Message = "Prefix was reset",
+        //                SourceClass = nameof(CommandHandlerService),
+        //                SourceMethod = nameof(Prefix)
+        //            };
 
-                    Environment.SetEnvironmentVariable("prefix", newPrefix);
+        //            Environment.SetEnvironmentVariable("prefix", newPrefix);
 
-                    await _logs.ManualLog(log);
-                    await message.Channel.SendMessageAsync($"your prefix was changed to {newPrefix}");
-                }
-            }
-            catch (Exception ex)
-            {
+        //            await _logs.ManualLog(log);
+        //            await message.Channel.SendMessageAsync($"your prefix was changed to {newPrefix}");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
 
-            }
-        }
+        //    }
+        //}
 
         #endregion
     }

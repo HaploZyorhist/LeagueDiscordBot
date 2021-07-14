@@ -1,15 +1,10 @@
-﻿using Autofac;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Interactivity;
 using LeagueDiscordBot.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace LeagueDiscordBot
@@ -43,8 +38,11 @@ namespace LeagueDiscordBot
 				// Base
 				.AddSingleton(_client)
 				.AddSingleton<CommandService>()
+
+				// Custom Services
 				.AddSingleton<CommandHandlerService>()
 				.AddSingleton<InteractivityService>()
+				.AddSingleton<LockOutService>()
 
 				// Logs
 				.AddSingleton<LogService>()

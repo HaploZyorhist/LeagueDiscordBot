@@ -23,6 +23,7 @@ namespace LeagueDiscordBot.Commands
 
         private readonly CommandService _commands;
         private LogService _logs;
+
         #endregion
 
         #region CTOR
@@ -46,42 +47,49 @@ namespace LeagueDiscordBot.Commands
         [Summary("Allows players to get information about commands")]
         public async Task HelpCommand([Remainder] string? instruction = "")
         {
-            // setup basic variables needed for the bot
-            instruction = instruction?.ToLower();
-            Discord.EmbedBuilder embedBuilder = new Discord.EmbedBuilder();
-
-            // build list of commands
-            List<CommandInfo> commandsList = _commands.Commands.ToList();
-
-            // build dictionary of command groups
-            Dictionary<string, string?> groups = new Dictionary<string, string?>();
-            foreach (CommandInfo command in commandsList)
+            try
             {
-                if (command.Module.Group != "Help" && !groups.ContainsKey(command.Module.Group))
-                {
-                    groups.TryAdd(command.Module.Group.ToLower(), command.Module.Summary);
-                }
-            }
+                // setup basic variables needed for the bot
+                instruction = instruction?.ToLower();
+                Discord.EmbedBuilder embedBuilder = new Discord.EmbedBuilder();
 
-            if (string.IsNullOrEmpty(instruction))
-            {
-                foreach (var key in groups)
+                // build list of commands
+                List<CommandInfo> commandsList = _commands.Commands.ToList();
+
+                // build dictionary of command groups
+                Dictionary<string, string?> groups = new Dictionary<string, string?>();
+                foreach (CommandInfo command in commandsList)
                 {
-                    embedBuilder.AddField(key.Key, key.Value ?? "summary not set");
-                }
-            }
-            else if (groups.ContainsKey(instruction))
-            {
-                foreach (var command in commandsList)
-                {
-                    if (command.Module.Group.ToLower() == instruction)
+                    if (command.Module.Group != "Help" && !groups.ContainsKey(command.Module.Group))
                     {
-                        embedBuilder.AddField(command.Name ?? "Base", command.Summary ?? "summary not set");
+                        groups.TryAdd(command.Module.Group.ToLower(), command.Module.Summary);
                     }
                 }
-            }
 
-            await ReplyAsync("Here's a list of commands and their description: ", false, embedBuilder.Build());
+                if (string.IsNullOrEmpty(instruction))
+                {
+                    foreach (var key in groups)
+                    {
+                        embedBuilder.AddField(key.Key, key.Value ?? "summary not set");
+                    }
+                }
+                else if (groups.ContainsKey(instruction))
+                {
+                    foreach (var command in commandsList)
+                    {
+                        if (command.Module.Group.ToLower() == instruction)
+                        {
+                            embedBuilder.AddField(command.Name ?? "Base", command.Summary ?? "summary not set");
+                        }
+                    }
+                }
+
+                await ReplyAsync("Here's a list of commands and their description: ", false, embedBuilder.Build());
+            }
+            catch (Exception ex)
+            {
+
+            }
         }
 
         #endregion

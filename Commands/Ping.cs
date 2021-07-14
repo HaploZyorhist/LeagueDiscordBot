@@ -12,10 +12,12 @@ namespace LeagueDiscordBot.Commands
     public class Ping : ModuleBase
     {
         private readonly LogService _logs;
+        private LockOutService _lock;
 
-        public Ping (LogService logs)
+        public Ping (LogService logs, LockOutService lockout)
         {
             _logs = logs;
+            _lock = lockout;
         }
 
         [RequireUserPermission(Discord.GuildPermission.Administrator, Group = "Permission")]
@@ -49,11 +51,9 @@ namespace LeagueDiscordBot.Commands
                 {
                     log = new LogMessage
                     {
-                        User = user.ToString(),
+                        User = ulong.Parse(user.Id.ToString()),
                         Severity = Discord.LogSeverity.Info,
                         Message = $"Ping was pressed {Repeats} times",
-                        SourceClass = nameof(Ping),
-                        SourceMethod = nameof(PingCommand)
                     };
 
                     for (var i = 0; i < Repeats; i++)
@@ -73,11 +73,9 @@ namespace LeagueDiscordBot.Commands
 
                     log = new LogMessage
                     {
-                        User = user.ToString(),
+                        User = ulong.Parse(user.Id.ToString()),
                         Severity = Discord.LogSeverity.Info,
                         Message = $"<@{id}> was Pinged!",
-                        SourceClass = nameof(Ping),
-                        SourceMethod = nameof(PingCommand)
                     };
 
                     await _logs.ManualLog(log);
@@ -88,6 +86,8 @@ namespace LeagueDiscordBot.Commands
                     throw new Exception($"{nameof(Ping)} was called incorrectly");
                 }
 
+                var lockCheck = _lock.CheckLockout(user);
+
                 await ReplyAsync(returnString.ToString());
             }
             catch (Exception ex)
@@ -96,8 +96,6 @@ namespace LeagueDiscordBot.Commands
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
-                    SourceClass = nameof(CommandHandlerService),
-                    SourceMethod = nameof(Ping)
                 };
 
                 await _logs.ManualLog(log);

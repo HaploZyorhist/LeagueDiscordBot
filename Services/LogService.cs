@@ -1,8 +1,11 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
+using LeagueDiscordBot.DbContexts;
+using LeagueDiscordBot.DBTables;
 using LeagueDiscordBot.Modules;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,7 +52,14 @@ namespace LeagueDiscordBot.Services
         /// <returns></returns>
         public Task AutoLog(Discord.LogMessage msg)
 		{
-			Console.WriteLine(msg.ToString());
+            LogMessage logConversion = new LogMessage
+            {
+                Severity = msg.Severity,
+                TriggerClass = msg.Source,
+                User = 1,
+                Message = msg.Message
+            };
+            ManualLog(logConversion);
 			return Task.CompletedTask;
 		}
 
@@ -60,8 +70,33 @@ namespace LeagueDiscordBot.Services
         /// <returns></returns>
         public Task ManualLog(LogMessage log)
         {
-            Console.WriteLine(log.Severity + "\t" + log.User + "\t" + log.SourceClass + "\t" + log.SourceMethod + "\t\t" + log.Message);
-            return Task.CompletedTask;
+            try
+            {
+                // prepare the log to send into the table
+                LoLBotLogs tableLog = new LoLBotLogs
+                {
+                    TriggerServer = log.TriggerServer ?? "Unknown",
+                    TriggerChannel = log.TriggerChannel ?? "Unknown",
+                    TriggerClass = log.TriggerClass ?? "Unknown",
+                    TriggerFunction = log.TriggerFunction ?? "Unknown",
+                    LogDate = DateTime.Now,
+                    Severity = log.Severity.ToString(),
+                    UserID = log.User ?? 2005,
+                    LogMessage = log.Message
+                };
+
+                LoLBotContext db = new LoLBotContext();
+                db.LoLBotLogs.Add(tableLog);
+                db.SaveChanges();
+
+                Console.WriteLine("Log was insereted into logging table");
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Logging service could not insert into table " + ex.Message);
+                return Task.CompletedTask;
+            }
         }
 
         #endregion
