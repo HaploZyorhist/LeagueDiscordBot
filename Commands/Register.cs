@@ -46,22 +46,23 @@ namespace LeagueDiscordBot.Commands
         public async Task RegisterCommand()
         {
             string returnString = "";
+            string action = "Registering";
 
             var user = Context.User;
 
             try
             {
-                bool lockCheck = await _lock.CheckLockout(user);
+                var lockCheck = await _lock.CheckLockout(user);
 
-                if (lockCheck)
+                if (lockCheck.Locked)
                 {
-                    returnString = user.Mention + " is currently in another interaction";
+                    returnString = user.Mention + $" is currently {lockCheck.Action}";
                     await ReplyAsync(returnString);
                     return;
                 }
                 else
                 {
-                    await _lock.LockUser(user);
+                    await _lock.LockUser(user, action);
                 }
 
                 LoLBotContext db = new LoLBotContext();
@@ -99,7 +100,11 @@ namespace LeagueDiscordBot.Commands
 
                     while (match.Success == false)
                     {
-                        if (!name.Value.ToString().StartsWith("!"))
+                        if (string.Equals(name.Value.ToString().ToLower(), "!cancel"))
+                        {
+                            return;
+                        } 
+                        else if(!name.Value.ToString().StartsWith("!"))
                         {
                             returnString = $"{user.Mention} Your name was invalid.  Please use only Letters and no spaces";
                             await ReplyAsync(returnString);
@@ -160,22 +165,22 @@ namespace LeagueDiscordBot.Commands
         public async Task ChangeName ()
         {
             string returnString = "";
-
+            string action = "Changing Name";
             var user = Context.User;
 
             try
             {
-                bool lockCheck = await _lock.CheckLockout(user);
+                var lockCheck = await _lock.CheckLockout(user);
 
-                if (lockCheck)
+                if (lockCheck.Locked)
                 {
-                    returnString = user.Mention + " is currently in another interaction";
+                    returnString = user.Mention + $" is currently {lockCheck.Action}";
                     await ReplyAsync(returnString);
                     return;
                 }
                 else
                 {
-                    await _lock.LockUser(user);
+                    await _lock.LockUser(user, action);
                 }
 
                 LoLBotContext db = new LoLBotContext();
@@ -212,7 +217,11 @@ namespace LeagueDiscordBot.Commands
 
                     while (match.Success == false)
                     {
-                        if (!name.Value.ToString().StartsWith("!"))
+                        if (string.Equals(name.Value.ToString().ToLower(), "!cancel"))
+                        {
+                            return;
+                        }
+                        else if (!name.Value.ToString().StartsWith("!"))
                         {
                             returnString = $"{user.Mention} Your name was invalid.  Please use only Letters and no spaces";
                             await ReplyAsync(returnString);

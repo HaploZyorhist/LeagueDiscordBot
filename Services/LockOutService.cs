@@ -2,6 +2,7 @@
 using LeagueDiscordBot.DbContexts;
 using LeagueDiscordBot.DBTables;
 using LeagueDiscordBot.Modules;
+using LeagueDiscordBot.Modules.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,8 +45,13 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="user">the user identity who is being checked</param>
         /// <returns>true if user is locked out, false if they are not</returns>
-        public async Task<bool> CheckLockout(Discord.IUser user)
+        public async Task<LockOutResponse> CheckLockout(Discord.IUser user)
         {
+            LockOutResponse response = new LockOutResponse
+            {
+                Locked = false,
+                Action = ""
+            };
             try
             {
                 LoLBotContext db = new LoLBotContext();
@@ -81,7 +87,7 @@ namespace LeagueDiscordBot.Services
                         Message = $"{user.Id} was not in lockout table, added to table."
                     });
 
-                    return false;
+                    return response;
                 }
                 else if (lockout.LockOut)
                 {
@@ -94,10 +100,13 @@ namespace LeagueDiscordBot.Services
                         Message = $"{user.Id} was currently locked."
                     });
 
-                    return true;
+                    response.Locked = lockout.LockOut;
+                    response.Action = lockout.Action;
+
+                    return response;
                 }
 
-                return false;
+                return response;
             }
             catch (Exception ex)
             {
@@ -110,7 +119,7 @@ namespace LeagueDiscordBot.Services
                     Message = $"Lockout Check for {user.Id} failed " + ex.Message
                 });
 
-                return false;
+                return response;
             }
         }
 
@@ -118,7 +127,7 @@ namespace LeagueDiscordBot.Services
         /// method for locking user
         /// </summary>
         /// <param name="user">the user identity who is being locked</param>
-        public async Task<bool> LockUser(Discord.IUser user)
+        public async Task<bool> LockUser(Discord.IUser user, string action)
         {
             try
             {
@@ -128,6 +137,7 @@ namespace LeagueDiscordBot.Services
 
                 entity.DateTime = DateTime.Now;
                 entity.LockOut = true;
+                entity.Action = action;
 
                 db.UserLock.Update(entity);
                 db.SaveChanges();
@@ -141,7 +151,7 @@ namespace LeagueDiscordBot.Services
                     Message = $"{user.Id} was locked."
                 });
 
-                return false;
+                return true;
             }
             catch (Exception ex)
             {
@@ -172,6 +182,7 @@ namespace LeagueDiscordBot.Services
 
                 entity.DateTime = DateTime.Now;
                 entity.LockOut = false;
+                entity.Action = "";
 
                 db.UserLock.Update(entity);
                 db.SaveChanges();
@@ -185,7 +196,7 @@ namespace LeagueDiscordBot.Services
                     Message = $"{user.Id} was unlocked."
                 });
 
-                return false;
+                return true;
             }
             catch (Exception ex)
             {

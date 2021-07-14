@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -27,5 +28,11 @@ namespace LeagueDiscordBot.DBTables
         /// </summary>
         [Column("LockOut", TypeName = "bit")]
         public bool LockOut { get; set; }
+
+        /// <summary>
+        /// action that i locking the player
+        /// </summary>
+        [Column("Action", TypeName = "varchar(20)")]
+        public string? Action { get; set; }
     }
 }
