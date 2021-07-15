@@ -17,7 +17,6 @@ namespace LeagueDiscordBot.Commands
     {
         #region Fields
 
-        private readonly CommandService _commands;
         private LockOutService _lock;
         private LogService _logs;
 
@@ -25,9 +24,8 @@ namespace LeagueDiscordBot.Commands
 
         #region CTOR
 
-        public Cancel(CommandService commands, LogService logs, LockOutService lockout)
+        public Cancel(LogService logs, LockOutService lockout)
         {
-            _commands = commands;
             _logs = logs;
             _lock = lockout;
         }
@@ -43,6 +41,7 @@ namespace LeagueDiscordBot.Commands
         [Summary("Unlocks player from current command")]
         public async Task CancelCommand()
         {
+            // TODO: add logging into cancel command
             try
             {
                 var user = Context.User;

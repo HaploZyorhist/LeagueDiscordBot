@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using Discord.Commands;
+using Discord.WebSocket;
 using LeagueDiscordBot.Modules;
 using LeagueDiscordBot.Services;
 using System;
@@ -13,11 +14,13 @@ namespace LeagueDiscordBot.Commands
     {
         private readonly LogService _logs;
         private LockOutService _lock;
+        private readonly DiscordSocketClient _client;
 
-        public Ping (LogService logs, LockOutService lockout)
+        public Ping (LogService logs, LockOutService lockout, DiscordSocketClient client)
         {
             _logs = logs;
             _lock = lockout;
+            _client = client;
         }
 
         [RequireUserPermission(Discord.GuildPermission.Administrator, Group = "Permission")]
@@ -30,6 +33,7 @@ namespace LeagueDiscordBot.Commands
             var returnString = new StringBuilder();
 
             var user = Context.User;
+            
 
             bool getRepeats = false;
             int Repeats = 0;
@@ -58,7 +62,7 @@ namespace LeagueDiscordBot.Commands
 
                     for (var i = 0; i < Repeats; i++)
                     {
-                        returnString.AppendLine($"{user.Mention}" + " Pong!");
+                        returnString.AppendLine($" Pong!");
                     }
 
                     await _logs.ManualLog(log);
@@ -79,7 +83,8 @@ namespace LeagueDiscordBot.Commands
                     };
 
                     await _logs.ManualLog(log);
-                    returnString.AppendLine($"<@{id}> Pong!");
+
+                    returnString.AppendLine("Pong!");
                 }
                 else
                 {
@@ -87,6 +92,22 @@ namespace LeagueDiscordBot.Commands
                 }
 
                 var lockCheck = _lock.CheckLockout(user);
+
+                // TODO: This is the functionality for pinging all servers.  Will be used for raid bosses
+                foreach (var server in _client.Guilds)
+                {
+                    foreach (var channel in server.Channels)
+                    {
+                        string returnStr = "Pong!";
+                            ulong channelLong = ulong.Parse(channel.Id.ToString());
+                            var chn = _client.GetChannel(channelLong) as Discord.IMessageChannel;
+
+                        if (chn != null)
+                        {
+                            await chn.SendMessageAsync(returnStr);
+                        }
+                    }
+                }
 
                 await ReplyAsync(returnString.ToString());
             }

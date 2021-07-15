@@ -1,5 +1,6 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
+using LeagueDiscordBot.Commands;
 using LeagueDiscordBot.Modules;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -81,54 +82,22 @@ namespace LeagueDiscordBot.Services
                 return;
             }
 
-            if (!(message.ToString().StartsWith(prefix)))
+            var context = new SocketCommandContext(_client, socketMessage);
+
+            if (prefix != "!" && message.Content.ToLower().StartsWith("!prefix"))
+            {
+                prefix = "!";
+                await _commands.ExecuteAsync(context, prefix.Length, _provider);
+            }
+            else if (!(message.ToString().StartsWith(prefix)))
             {
                 return;
             }
-
-            var context = new SocketCommandContext(_client, socketMessage);
-
-            await _commands.ExecuteAsync(context, prefix.Length, _provider);
+            else
+            {
+                await _commands.ExecuteAsync(context, prefix.Length, _provider);
+            }
         }
-
-        #endregion
-
-        #region Commands
-
-        /// <summary>
-        /// Command for changing the prefix of the bot
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="instruction"></param>
-        // TODO: Make this into command class
-        //public async void Prefix(SocketMessage message, string instruction)
-        //{
-        //    string newPrefix = "";
-        //    try
-        //    {
-        //        if (instruction.Length > 0 && instruction.Length < 4)
-        //        {
-        //            newPrefix = instruction;
-
-        //            var log = new LogMessage
-        //            {
-        //                Severity = Discord.LogSeverity.Info,
-        //                Message = "Prefix was reset",
-        //                SourceClass = nameof(CommandHandlerService),
-        //                SourceMethod = nameof(Prefix)
-        //            };
-
-        //            Environment.SetEnvironmentVariable("prefix", newPrefix);
-
-        //            await _logs.ManualLog(log);
-        //            await message.Channel.SendMessageAsync($"your prefix was changed to {newPrefix}");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-
-        //    }
-        //}
 
         #endregion
     }
