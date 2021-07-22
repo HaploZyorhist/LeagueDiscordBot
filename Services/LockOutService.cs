@@ -19,7 +19,8 @@ namespace LeagueDiscordBot.Services
         #region Fields
 
         private readonly DiscordSocketClient _discord;
-        private LogService _logs;
+        private readonly LogService _logs;
+        private readonly LoLBotContext _db;
 
         #endregion
 
@@ -30,10 +31,11 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="discord"></param>
         /// <param name="commands"></param>
-        public LockOutService(DiscordSocketClient discord, LogService logs)
+        public LockOutService(DiscordSocketClient discord, LogService logs, LoLBotContext db)
         {
             _discord = discord;
             _logs = logs;
+            _db = db;
         }
 
         #endregion
@@ -54,9 +56,7 @@ namespace LeagueDiscordBot.Services
             };
             try
             {
-                LoLBotContext db = new LoLBotContext();
-
-                var lockout = db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
+                var lockout = _db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
 
                 await _logs.ManualLog(new LogMessage
                 {
@@ -69,14 +69,14 @@ namespace LeagueDiscordBot.Services
 
                 if (lockout == null)
                 {
-                    db.UserLock.Add(new UserLock
+                    await _db.UserLock.AddAsync(new UserLock
                     {
                         UserID = ulong.Parse(user.Id.ToString()),
                         LockOut = false,
                         DateTime = DateTime.Now
                     });
 
-                    db.SaveChanges();
+                    await _db.SaveChangesAsync();
 
                     await _logs.ManualLog(new LogMessage
                     {
@@ -131,16 +131,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                LoLBotContext db = new LoLBotContext();
-
-                var entity = db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
+                var entity = _db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
 
                 entity.DateTime = DateTime.Now;
                 entity.LockOut = true;
                 entity.Action = action;
 
-                db.UserLock.Update(entity);
-                db.SaveChanges();
+                await _db.SaveChangesAsync();
 
                 await _logs.ManualLog(new LogMessage
                 {
@@ -176,16 +173,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                LoLBotContext db = new LoLBotContext();
-
-                var entity = db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
+                var entity = _db.UserLock.FirstOrDefault(u => u.UserID == user.Id);
 
                 entity.DateTime = DateTime.Now;
                 entity.LockOut = false;
                 entity.Action = "";
 
-                db.UserLock.Update(entity);
-                db.SaveChanges();
+                await _db.SaveChangesAsync();
 
                 await _logs.ManualLog(new LogMessage
                 {
@@ -202,7 +196,7 @@ namespace LeagueDiscordBot.Services
             {
                 await _logs.ManualLog(new LogMessage
                 {
-                    User = ulong.Parse(user.Id.ToString()),
+                    User = ulong.Parse(user.Id.ToString() ?? "2005"),
                     TriggerClass = nameof(LockOutService),
                     TriggerFunction = nameof(UnlockUser),
                     Severity = Discord.LogSeverity.Error,

@@ -20,6 +20,7 @@ namespace LeagueDiscordBot.Services
 
         #region Fields
 
+        private readonly LoLBotContext _db;
         private readonly DiscordSocketClient _discord;
         private readonly CommandService _commands;
 
@@ -32,10 +33,11 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="discord"></param>
         /// <param name="commands"></param>
-        public LogService(DiscordSocketClient discord, CommandService commands)
+        public LogService(DiscordSocketClient discord, CommandService commands, LoLBotContext db)
         {
             _discord = discord;
             _commands = commands;
+            _db = db;
 
             _discord.Log += AutoLog;
             _commands.Log += AutoLog;
@@ -50,7 +52,7 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="msg"></param>
         /// <returns></returns>
-        public Task AutoLog(Discord.LogMessage msg)
+        public async Task AutoLog(Discord.LogMessage msg)
 		{
             LogMessage logConversion = new LogMessage
             {
@@ -59,8 +61,9 @@ namespace LeagueDiscordBot.Services
                 User = 1,
                 Message = msg.Message
             };
-            ManualLog(logConversion);
-			return Task.CompletedTask;
+            await ManualLog(logConversion);
+			await Task.CompletedTask;
+            return;
 		}
 
         /// <summary>
@@ -68,7 +71,7 @@ namespace LeagueDiscordBot.Services
         /// </summary>
         /// <param name="log"></param>
         /// <returns></returns>
-        public Task ManualLog(LogMessage log)
+        public async Task ManualLog(LogMessage log)
         {
             try
             {
@@ -82,20 +85,21 @@ namespace LeagueDiscordBot.Services
                     LogDate = DateTime.Now,
                     Severity = log.Severity.ToString(),
                     UserID = log.User ?? 2005,
-                    LogMessage = log.Message
+                    LogMessage = log.Message ?? "Auto Generated"
                 };
 
-                LoLBotContext db = new LoLBotContext();
-                db.LoLBotLogs.Add(tableLog);
-                db.SaveChanges();
+                await _db.LoLBotLogs.AddAsync(tableLog);
+                await _db.SaveChangesAsync();
 
                 Console.WriteLine("Log was insereted into logging table");
-                return Task.CompletedTask;
+                await Task.CompletedTask;
+                return;
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Logging service could not insert into table " + ex.Message);
-                return Task.CompletedTask;
+                await Task.CompletedTask;
+                return;
             }
         }
 

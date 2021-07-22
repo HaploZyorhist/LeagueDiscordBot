@@ -2,8 +2,12 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using Interactivity;
+using LeagueDiscordBot.DbContexts;
 using LeagueDiscordBot.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading.Tasks;
 
@@ -35,18 +39,23 @@ namespace LeagueDiscordBot
 		private IServiceProvider ConfigureServices()
 		{
 			return new ServiceCollection()
-				// Base
-				.AddSingleton(_client)
-				.AddSingleton<CommandService>()
+                // Base
+                .AddSingleton(_client)
+                .AddSingleton<CommandService>()
 
-				// Custom Services
-				.AddSingleton<CommandHandlerService>()
-				.AddSingleton<InteractivityService>()
-				.AddSingleton<LockOutService>()
+                // Custom Services
+                .AddSingleton<CommandHandlerService>()
+                .AddSingleton<InteractivityService>()
+                .AddSingleton<LockOutService>()
+                .AddSingleton<RegistrationService>()
+                .AddSingleton<LogService>()
+				.AddSingleton<ChampionService>()
 
-				// Logs
-				.AddSingleton<LogService>()
-				.BuildServiceProvider();
+                // Database
+                .AddDbContext<LoLBotContext>(options =>
+                                             options.UseSqlServer(Environment.GetEnvironmentVariable("DBConnection")), ServiceLifetime.Transient)
+
+                .BuildServiceProvider();
 		}
 	}
 }

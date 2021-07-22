@@ -12,18 +12,19 @@ namespace LeagueDiscordBot.DbContexts
 {
     public class LoLBotContext : DbContext
     {
-        public LoLBotContext()
+        public LoLBotContext(DbContextOptions<LoLBotContext> options) : base(options)
         { }
+
+        public virtual DbSet<ChampionBase> ChampionBase { get; set; }
+
+        public virtual DbSet<Champions> Champions { get; set; }
+
+        public virtual DbSet<ChampionTier> ChampionTier { get; set; }
 
         public virtual DbSet<LoLBotLogs> LoLBotLogs { get; set; }
 
         public virtual DbSet<PlayerData> PlayerData { get; set; }
 
         public virtual DbSet<UserLock> UserLock { get; set; }
-
-        protected override void OnConfiguring (DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable("DBConnection"));
-        }
     }
 }

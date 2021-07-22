@@ -22,7 +22,7 @@ namespace LeagueDiscordBot.Commands
         #region Fields
 
         private readonly CommandService _commands;
-        private LogService _logs;
+        private readonly LogService _logs;
 
         #endregion
 
@@ -49,6 +49,7 @@ namespace LeagueDiscordBot.Commands
         {
             try
             {
+                // TODO: fix help construction
                 // setup basic variables needed for the bot
                 instruction = instruction?.ToLower();
                 Discord.EmbedBuilder embedBuilder = new Discord.EmbedBuilder();
@@ -56,18 +57,46 @@ namespace LeagueDiscordBot.Commands
                 // build list of commands
                 List<CommandInfo> commandsList = _commands.Commands.ToList();
 
+                var log = new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Info,
+                    Message = "Initiating help command",
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerServer = Context.Guild.Name,
+                    TriggerClass = nameof(Help),
+                    TriggerFunction = nameof(HelpCommand),
+                    User = ulong.Parse(Context.User.Id.ToString())
+                };
+
                 // build dictionary of command groups
                 Dictionary<string, string?> groups = new Dictionary<string, string?>();
                 foreach (CommandInfo command in commandsList)
                 {
                     if (command.Module.Group != "Help" && !groups.ContainsKey(command.Module.Group))
                     {
-                        groups.TryAdd(command.Module.Group.ToLower(), command.Module.Summary);
+                        if (string.IsNullOrEmpty(command.Module.Group))
+                        {
+                            groups.TryAdd(command.Name.ToLower(), command.Summary);
+                        }
+                        else
+                        {
+                            groups.TryAdd(command.Module.Group.ToLower(), command.Module.Summary);
+                        }
                     }
                 }
 
                 if (string.IsNullOrEmpty(instruction))
                 {
+                    log = new LogMessage
+                    {
+                        Severity = Discord.LogSeverity.Info,
+                        Message = "Building list of help groups",
+                        TriggerChannel = Context.Channel.Name,
+                        TriggerServer = Context.Guild.Name,
+                        TriggerClass = nameof(Help),
+                        TriggerFunction = nameof(HelpCommand),
+                        User = ulong.Parse(Context.User.Id.ToString())
+                    };
                     foreach (var key in groups)
                     {
                         embedBuilder.AddField(key.Key, key.Value ?? "summary not set");
@@ -75,6 +104,16 @@ namespace LeagueDiscordBot.Commands
                 }
                 else if (groups.ContainsKey(instruction))
                 {
+                    log = new LogMessage
+                    {
+                        Severity = Discord.LogSeverity.Info,
+                        Message = "Building list of commands",
+                        TriggerChannel = Context.Channel.Name,
+                        TriggerServer = Context.Guild.Name,
+                        TriggerClass = nameof(Help),
+                        TriggerFunction = nameof(HelpCommand),
+                        User = ulong.Parse(Context.User.Id.ToString())
+                    };
                     foreach (var command in commandsList)
                     {
                         if (command.Module.Group.ToLower() == instruction)
@@ -88,7 +127,16 @@ namespace LeagueDiscordBot.Commands
             }
             catch (Exception ex)
             {
-
+                var log = new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Error,
+                    Message = "Help command failed " + ex.Message,
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerServer = Context.Guild.Name,
+                    TriggerClass = nameof(Help),
+                    TriggerFunction = nameof(HelpCommand),
+                    User = ulong.Parse(Context.User.Id.ToString())
+                };
             }
         }
 
