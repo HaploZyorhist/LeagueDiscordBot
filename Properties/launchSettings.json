@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "LeagueDiscordBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "prefix": "!",
+        "token": "ODYyNDgxOTMwMDc0NDU2MDY0.YOY-5A.aSmbJIIV2rve7ZUUkBTcQeUzcac",
+        "DBConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=LolBot;User ID=LoLBot;Password=ThisIsFun;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
+using LeagueDiscordBot.Commands;
 using LeagueDiscordBot.Modules;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -10,13 +11,32 @@ using System.Threading.Tasks;
 
 namespace LeagueDiscordBot.Services
 {
+    /// <summary>
+    /// service class for handling commands
+    /// </summary>
     public class CommandHandlerService
     {
+
+        #region Fields
+
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _client;
         private IServiceProvider _provider;
         private LogService _logs;
 
+        //const client = new Discord.Client();
+
+        #endregion
+
+        #region CTOR
+
+        /// <summary>
+        /// CTOR for class
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="provider"></param>
+        /// <param name="commands"></param>
+        /// <param name="logs"></param>
         public CommandHandlerService(DiscordSocketClient client, 
                                      IServiceProvider provider, 
                                      CommandService commands,
@@ -30,44 +50,55 @@ namespace LeagueDiscordBot.Services
             _client.MessageReceived += MessageReceived;
         }
 
+        #endregion
+
+        #region CommandHandler
+
+        /// <summary>
+        /// Task for setting up the class
+        /// </summary>
+        /// <param name="provider"></param>
         public async Task InitializeAsync(IServiceProvider provider)
         {
             _provider = provider;
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
-            //_client.Log += Log;
-            //_provider = provider;
-            //await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
         }
 
+        /// <summary>
+        /// Message handler, should manage the commands
+        /// </summary>
+        /// <param name="message"></param>
         private async Task MessageReceived(SocketMessage message)
         {
-            if (message.Content == "!ping")
+            var prefix = Environment.GetEnvironmentVariable("prefix");
+
+            if (!(message is SocketUserMessage socketMessage))
             {
-                var log = new LogMessage
-                {
-                    Severity = Discord.LogSeverity.Info,
-                    Message = "Ping was pressed",
-                    Source = nameof(MessageReceived)
-                };
-
-                await _logs.Log(new Discord.LogMessage(log.Severity, log.Source, log.Message));
-
-                await message.Channel.SendMessageAsync("Pong!");
+                return;
             }
 
-            if (message.Content == "!coding is fun")
+            if (message.Source != Discord.MessageSource.User)
             {
-                var log = new LogMessage
-                {
-                    Severity = Discord.LogSeverity.Info,
-                    Message = "coding message",
-                    Source = nameof(MessageReceived)
-                };
+                return;
+            }
 
-                await _logs.Log(new Discord.LogMessage(log.Severity, log.Source, log.Message));
+            var context = new SocketCommandContext(_client, socketMessage);
 
-                await message.Channel.SendMessageAsync("You're a fucking liar!");
+            if (prefix != "!" && message.Content.ToLower().StartsWith("!prefix"))
+            {
+                prefix = "!";
+                await _commands.ExecuteAsync(context, prefix.Length, _provider);
+            }
+            else if (!(message.ToString().StartsWith(prefix)))
+            {
+                return;
+            }
+            else
+            {
+                await _commands.ExecuteAsync(context, prefix.Length, _provider);
             }
         }
+
+        #endregion
     }
 }
