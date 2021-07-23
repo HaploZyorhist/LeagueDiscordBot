@@ -50,10 +50,11 @@ namespace LeagueDiscordBot
                 .AddSingleton<RegistrationService>()
                 .AddSingleton<LogService>()
 				.AddSingleton<ChampionService>()
+				.AddSingleton<BattleService>()
 
                 // Database
                 .AddDbContext<LoLBotContext>(options =>
-                                             options.UseSqlServer(Environment.GetEnvironmentVariable("DBConnection")), ServiceLifetime.Transient)
+                                             options.UseSqlServer(Environment.GetEnvironmentVariable("DBConnection")))
 
                 .BuildServiceProvider();
 		}

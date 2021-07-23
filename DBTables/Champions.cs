@@ -17,6 +17,11 @@ namespace LeagueDiscordBot.DBTables
         /// discord user id
         /// </summary>
         [Key]
+        [Column("ChampionInstance", TypeName = "int")]
+        public int ChampionInstance { get; set; }
+        /// <summary>
+        /// discord user id
+        /// </summary>
         [Column("ChampionOwner", TypeName = "numeric(20, 0)")]
         public ulong ChampionOwner { get; set; }
 

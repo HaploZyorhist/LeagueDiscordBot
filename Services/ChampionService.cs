@@ -157,7 +157,7 @@ namespace LeagueDiscordBot.Services
                 ChampionID = champID,
                 ChampionLevel = 1,
                 ChampionExp = 0,
-                ChampionTier = 1
+                ChampionTier = 29
             };
 
             await _db.Champions.AddAsync(newChamp);
@@ -171,7 +171,6 @@ namespace LeagueDiscordBot.Services
                 List<ChampionsResponse> myChamps = new List<ChampionsResponse>();
 
                 var champList = await _db.Champions.AsAsyncEnumerable().Where(c => c.ChampionOwner == ulong.Parse(user.Id.ToString())).ToListAsync();
-                var ironIV = await GetTierID("Iron IV");
 
                 foreach (var champ in champList)
                 {
@@ -179,7 +178,7 @@ namespace LeagueDiscordBot.Services
                     {
                         ChampionID = champ.ChampionID,
                         ChampionOwner = champ.ChampionOwner,
-                        ChampionTier = ironIV.TierID,
+                        ChampionTier = champ.ChampionTier,
                         ChampionLevel = champ.ChampionLevel,
                         ChampionExp = champ.ChampionExp
                     };
@@ -195,39 +194,19 @@ namespace LeagueDiscordBot.Services
             }
         }
 
-        public async Task<TierResponse> GetTierName(int championTier)
+        public async Task<Dictionary<int, string>> GetTierList()
         {
             try
             {
-                var getTier = await _db.ChampionTier.FirstOrDefaultAsync(t => t.TierID == championTier);
+                var getTier = await _db.ChampionTier.AsAsyncEnumerable().ToListAsync();
+                Dictionary<int, string> tierList = new Dictionary<int, string>();
 
-                var response = new TierResponse
+                foreach(var tier in getTier)
                 {
-                    TierID = getTier.TierID,
-                    TierName = getTier.TierName
+                    tierList.Add(tier.TierID, tier.TierName);
                 };
 
-                return response;
-            }
-            catch(Exception ex)
-            {
-                return null;
-            }
-        }
-
-        public async Task<TierResponse> GetTierID(string championTier)
-        {
-            try
-            {
-                var getTier = await _db.ChampionTier.FirstOrDefaultAsync(t => t.TierName == championTier);
-
-                var response = new TierResponse
-                {
-                    TierID = getTier.TierID,
-                    TierName = getTier.TierName
-                };
-
-                return response;
+                return tierList;
             }
             catch (Exception ex)
             {

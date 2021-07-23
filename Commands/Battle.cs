@@ -19,22 +19,27 @@ namespace LeagueDiscordBot.Commands
     {
         #region Fields
 
-        private readonly CommandService _commands;
         private readonly LogService _logs;
         private readonly LockOutService _lock;
         private readonly RegistrationService _register;
         private readonly InteractivityService _interact;
+        private readonly BattleService _battle;
 
         #endregion
 
         #region CTOR
 
-        public Battle(CommandService commands, LogService logs, LockOutService lockOut, RegistrationService register, InteractivityService interact)
+        public Battle(LogService logs, 
+                      LockOutService lockOut, 
+                      RegistrationService register, 
+                      InteractivityService interact,
+                      BattleService battle)
         {
             _logs = logs;
             _lock = lockOut;
             _register = register;
             _interact = interact;
+            _battle = battle;
         }
 
         #endregion
@@ -132,42 +137,55 @@ namespace LeagueDiscordBot.Commands
                 returnString = $"{user.Mention} has challenged {challengedPlayer.Mention} to a battle, {challengedPlayer.Mention} you have 30 seconds to accept! (to accept type Accept)";
                 await ReplyAsync(returnString);
 
-                var challengeResponse = await _interact.NextMessageAsync(x => x.Author.Id == challengedPlayer.Id && x.Channel == Context.Channel);
+                bool acceptVar = false;
+                DateTime challengeTime = DateTime.Now;
 
-                if (challengeResponse.Value == null)
+                InteractivityResult<Discord.WebSocket.SocketMessage> challengeResult = null;
+
+                while (acceptVar == false && challengeTime.AddSeconds(30) > DateTime.Now)
                 {
-                    returnString = $"{challengedPlayer.Mention} failed to respond";
-                    await ReplyAsync(returnString);
-                    throw new Exception($"{challengedPlayer.Mention} failed to respond");
-                }
-
-                if (challengeResponse.Value.ToString().ToLower() == "accept")
-                {
-                    var randomPlayer = new Random();
-                    var player = randomPlayer.Next(1, 3);
-
-                    if (player == 1)
+                    challengeResult = await _interact.NextMessageAsync(x => (x.Author.Id == challengedPlayer.Id || x.Author.Id == user.Id) && x.Channel == Context.Channel);
+                    
+                    if (challengeResult.Value == null || challengeTime.AddSeconds(30) <= DateTime.Now)
                     {
-                        returnString = $"Congratulations {challengedPlayer.Mention} you have won";
-                    }
-                    else if (player == 2)
-                    {
-                        returnString = $"Congratulations {user.Mention} you have won";
+                        throw new Exception("The challenge has timed out");
                     }
 
-                    await ReplyAsync(returnString);
+                    if ((challengeResult.Value.Author.Id == user.Id && challengeResult.Value.ToString().ToLower() == "!cancel") ||
+                       (challengeResult.Value.Author.Id == challengedPlayer.Id && (challengeResult.Value.ToString().ToLower() == "deny" ||
+                                                                                   challengeResult.Value.ToString().ToLower() == "!cancel")))
+                    {
+                        throw new Exception("The battle was canceled");
+                    }
 
-                    await _lock.UnlockUser(user);
-                    await _lock.UnlockUser(challengedPlayer);
-                }
-                else
-                {
-                    returnString = $"{user.Mention} your opponent was too cowerdly to play, you have executed them for turning their back";
-                    await ReplyAsync(returnString);
-                    await _lock.UnlockUser(user);
-                    await _lock.UnlockUser(challengedPlayer);
+                    if (challengeResult.Value.Author.Id == challengedPlayer.Id && (challengeResult.Value.ToString().ToLower() == "accept"))
+                    {
+                        acceptVar = true;
+                        var winner = await _battle.Battle(user, challengedPlayer, Context.Channel);
+
+                        if (winner == null)
+                        {
+                            throw new Exception("The battle was canceled, no one has won");
+                        }
+
+                        if (winner == user)
+                        {
+                            // TODO: Add rewards for winner
+                            await ReplyAsync($"Congrats {user.Mention} you have won the fight");
+                        }
+
+                        if (winner == challengedPlayer)
+                        {
+                            // TODO: Add rewards for winner
+                            await ReplyAsync($"Congrats {challengedPlayer.Mention} you have won the fight");
+                        }
+
+                        await _lock.UnlockUser(user);
+                        await _lock.UnlockUser(challengedPlayer);
+                    }
                 }
 
+                return;
             }
             catch(Exception ex)
             {
@@ -182,7 +200,7 @@ namespace LeagueDiscordBot.Commands
                     Message = ex.Message
                 });
 
-                await ReplyAsync($"{user.Mention}, your challenge failed");
+                await ReplyAsync(ex.Message);
 
                 await _lock.UnlockUser(user);
 
@@ -190,6 +208,8 @@ namespace LeagueDiscordBot.Commands
                 {
                     await _lock.UnlockUser(challengedPlayer);
                 }
+
+                return;
             }
         }
 

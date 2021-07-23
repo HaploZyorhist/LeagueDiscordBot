@@ -64,14 +64,15 @@ namespace LeagueDiscordBot.Commands
             try
             {
                 var myChamps = await _champService.GetMyChamps(user);
+                var tiers = await _champService.GetTierList();
 
                 var responseSting = new StringBuilder();
                 
                 foreach(var champ in myChamps)
                 {
                     var champData = await _champService.GetChampByID(champ.ChampionID);
-                    var champTier = await _champService.GetTierName(champ.ChampionTier);
-                    responseSting.AppendLine($"{champData.ChampionName}, {champData.Series}, {champTier.TierName}, Level {champ.ChampionLevel}, Exp ");
+                    var champTier = tiers.GetValueOrDefault(champ.ChampionTier);
+                    responseSting.AppendLine($"{champData.ChampionName}, {champData.Series}, {champTier}, Level {champ.ChampionLevel}, Exp {champ.ChampionExp}");
                 }
 
                 await ReplyAsync(responseSting.ToString());
