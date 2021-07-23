@@ -1,5 +1,6 @@
 ﻿using Discord.Commands;
 using Interactivity;
+using LeagueDiscordBot.Modules;
 using LeagueDiscordBot.Services;
 using System;
 using System.Collections.Generic;
@@ -63,6 +64,17 @@ namespace LeagueDiscordBot.Commands
             var user = Context.User;
             try
             {
+                var log = new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Info,
+                    Message = "Generating list of champions for user",
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerServer = Context.Guild.Name,
+                    TriggerClass = nameof(Inventory),
+                    TriggerFunction = nameof(GetOwnedChampsCommand),
+                    User = ulong.Parse(user.Id.ToString())
+                };
+
                 var myChamps = await _champService.GetMyChamps(user);
                 var tiers = await _champService.GetTierList();
 
@@ -79,7 +91,16 @@ namespace LeagueDiscordBot.Commands
             }
             catch(Exception ex)
             {
-
+                var log = new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Error,
+                    Message = ex.Message,
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerServer = Context.Guild.Name,
+                    TriggerClass = nameof(Inventory),
+                    TriggerFunction = nameof(GetOwnedChampsCommand),
+                    User = ulong.Parse(user.Id.ToString())
+                };
             }
         }
 

@@ -133,7 +133,6 @@ namespace LeagueDiscordBot.Commands
                     await _lock.LockUser(challengedPlayer, action);
                 }
 
-                // TODO: add cancel handler to message waiting for BOTH players
                 returnString = $"{user.Mention} has challenged {challengedPlayer.Mention} to a battle, {challengedPlayer.Mention} you have 30 seconds to accept! (to accept type Accept)";
                 await ReplyAsync(returnString);
 

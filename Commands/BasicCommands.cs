@@ -211,50 +211,6 @@ namespace LeagueDiscordBot.Commands
         }
 
         /// <summary>
-        /// this command is temporary, should be implimented into the register command
-        /// </summary>
-        // TODO: move first champ command into part of the registration process
-        [Command("FirstChamp")]
-        [Summary("This command gets players their first champion")]
-        public async Task FirstChampCommand()
-        {
-            var user = Context.User;
-
-            try
-            {
-                var champCount = await _champService.GetChampsCount();
-                var ownedCount = await _champService.GetOwnedChampCount(user);
-                var playerRegistered = await _register.CheckRegistration(user);
-                var playerLocked = await _lock.CheckLockout(user);
-
-                if (playerLocked.Locked ||
-                    !playerRegistered)
-                {
-                    throw new Exception($"{user.Mention} is not registered, or is locked");
-                }
-
-                if (ownedCount > 0)
-                {
-                    throw new Exception($"{user.Mention} already owns a champion");                
-                }
-
-                var randomNumber = new Random();
-                var randomChamp = randomNumber.Next(0, champCount);
-                randomChamp++;
-
-                await _champService.GiveRandomChamp(user, randomChamp);
-                var newChamp = await _champService.GetChampByID(randomChamp);
-
-                await ReplyAsync($"Congradulations you have unlocked {newChamp.ChampionName}");
-
-            }
-            catch (Exception ex)
-            {
-                await ReplyAsync(ex.Message);
-            }
-        }
-
-        /// <summary>
         /// Command for setting the prefix for the bot
         /// </summary>
         /// <param name="instruction"></param>
@@ -405,6 +361,12 @@ namespace LeagueDiscordBot.Commands
                 if (registrationCheck == true)
                 {
                     await ReplyAsync($"You have registered, welcome {name.Value}");
+
+                    await _champService.GiveRandomChamp(user);
+                    var champs = await _champService.GetMyChamps(user);
+                    var champ = await _champService.GetChampByID(champs[0].ChampionID);
+
+                    await ReplyAsync($"Congradulations you have unlocked {champ.ChampionName}");
                 }
                 else
                 {
