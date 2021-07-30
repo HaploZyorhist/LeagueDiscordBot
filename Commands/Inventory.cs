@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿#nullable enable 
+using Discord.Commands;
 using Interactivity;
 using LeagueDiscordBot.Modules;
 using LeagueDiscordBot.Services;
@@ -101,6 +102,51 @@ namespace LeagueDiscordBot.Commands
                     TriggerFunction = nameof(GetOwnedChampsCommand),
                     User = ulong.Parse(user.Id.ToString())
                 };
+            }
+        }
+
+        /// <summary>
+        /// gets details of an owned champ by id
+        /// </summary>
+        [Command("Champ")]
+        [Summary("Returns the details of a champion by id")]
+        public async Task GetChampByID([Remainder] string? instruction = "")
+        {
+            var user = Context.User;
+            try
+            {
+                string champion = instruction.Trim().ToLower();
+
+                var champDetails = await _champService.GetChampByName(champion);
+
+                if (champDetails == null)
+                {
+                    throw new Exception("The champion name you entered does not exist");
+                }
+
+                var champ = await _champService.GetMyChampByID(user, champDetails.ChampionID);
+
+                if(champ == null)
+                {
+                    throw new Exception("The champion you're attemting to search for does not exist");
+                }
+
+                await ReplyAsync($"The champion you searched for is {champDetails.ChampionName}, Level {champ.ChampionLevel}");
+            }
+            catch (Exception ex)
+            {
+                var log = new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Error,
+                    Message = ex.Message,
+                    TriggerChannel = Context.Channel.Name,
+                    TriggerServer = Context.Guild.Name,
+                    TriggerClass = nameof(Inventory),
+                    TriggerFunction = nameof(GetChampByID),
+                    User = ulong.Parse(user.Id.ToString())
+                };
+
+                await ReplyAsync(ex.Message);
             }
         }
 

@@ -18,7 +18,7 @@ namespace LeagueDiscordBot.Services
     {
         #region Fields
 
-        private readonly LogService _logs;
+        private readonly LogService _log;
         private readonly LoLBotContext _db;
 
         #endregion
@@ -32,7 +32,7 @@ namespace LeagueDiscordBot.Services
         /// <param name="commands"></param>
         public ChampionService(LogService logs, LoLBotContext db)
         {
-            _logs = logs;
+            _log = logs;
             _db = db;
         }
 
@@ -47,13 +47,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Generating count of champions",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampsCount)
-                };
+                });
                 var champCount = await _db.ChampionBase.CountAsync();
 
                 return champCount;
@@ -61,13 +61,13 @@ namespace LeagueDiscordBot.Services
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampsCount)
-                };
+                });
                 return 0;
             }
         }
@@ -76,45 +76,31 @@ namespace LeagueDiscordBot.Services
         /// Generats a list of champions by name
         /// </summary>
         /// <param name="championName"></param>
-        public async Task<List<ChampionBaseResponse>> GetChampsByName (string championName)
+        public async Task<ChampionBaseResponse> GetChampByName (string championName)
         {
             try
             {
-                var champList = await _db.ChampionBase.AsAsyncEnumerable().Where(c => c.ChampionName == championName).ToListAsync();
+                var champ = await _db.ChampionBase.AsAsyncEnumerable().FirstOrDefaultAsync(c => c.ChampionName.ToLower() == championName);
 
-                List<ChampionBaseResponse> champResponseList = new List<ChampionBaseResponse>();
-
-                foreach (var champ in champList)
+                ChampionBaseResponse champResponse = new ChampionBaseResponse
                 {
-                    var log = new LogMessage
-                    {
-                        Severity = Discord.LogSeverity.Info,
-                        Message = "Getting champion by name",
-                        TriggerClass = nameof(ChampionService),
-                        TriggerFunction = nameof(GetChampsByName)
-                    };
-                    ChampionBaseResponse champResponse = new ChampionBaseResponse
-                    {
-                        ChampionID = champ.ChampionID,
-                        ChampionName = champ.ChampionName,
-                        Series = champ.Series
-                    };
+                    ChampionID = champ.ChampionID,
+                    ChampionName = champ.ChampionName,
+                    Series = champ.Series
+                };
 
-                    champResponseList.Add(champResponse);
-                }
-
-                return champResponseList;
+                return champResponse;
               
             }
             catch(Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
-                    TriggerFunction = nameof(GetChampsByName)
-                };
+                    TriggerFunction = nameof(GetChampByName)
+                });
                 return null;
             }
         }
@@ -127,13 +113,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Getting champion by series",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampsBySeries)
-                };
+                });
 
                 var champList = await _db.ChampionBase.AsAsyncEnumerable().Where(c => c.Series == seriesName).ToListAsync();
 
@@ -156,13 +142,13 @@ namespace LeagueDiscordBot.Services
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampsBySeries)
-                };
+                });
                 return null;
             }
 
@@ -176,14 +162,19 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Getting champion by ID",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampByID)
-                };
+                });
                 var champ = await _db.ChampionBase.FirstOrDefaultAsync(c => c.ChampionID == championID);
+
+                if (champ == null)
+                {
+                    throw new Exception("The champion you are attempting to search for does not exist");
+                }
 
                 ChampionBaseResponse champResponse = new ChampionBaseResponse
                 {
@@ -196,13 +187,13 @@ namespace LeagueDiscordBot.Services
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetChampByID)
-                };
+                });
             }
             return null;
         }
@@ -215,26 +206,26 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Getting count of owned champs",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetOwnedChampCount)
-                };
+                });
                 var ownedCount = await _db.Champions.CountAsync(c => c.ChampionOwner == ulong.Parse(user.Id.ToString()));
 
                 return ownedCount;
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetOwnedChampCount)
-                };
+                });
                 return 0;
             }
         }
@@ -247,13 +238,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Giving a random champ to player",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GiveRandomChamp)
-                };
+                });
                 Random randomNum = new Random();
 
                 var champID = randomNum.Next(1, 4);
@@ -271,13 +262,13 @@ namespace LeagueDiscordBot.Services
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GiveRandomChamp)
-                };
+                });
             }
         }
 
@@ -289,13 +280,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Generating a list of player owned champs",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetMyChamps)
-                };
+                });
 
                 List<ChampionsResponse> myChamps = new List<ChampionsResponse>();
 
@@ -319,13 +310,60 @@ namespace LeagueDiscordBot.Services
             }
             catch(Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetMyChamps)
+                });
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets a list of champions that the player owns
+        /// </summary>
+        /// <param name="user"></param>
+        public async Task<ChampionsResponse> GetMyChampByID(Discord.IUser user, int champID)
+        {
+            try
+            {
+                await _log.ManualLog(new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Info,
+                    Message = "Generating a list of player owned champs",
+                    TriggerClass = nameof(ChampionService),
+                    TriggerFunction = nameof(GetMyChamps)
+                });
+
+                var champ = await _db.Champions.AsAsyncEnumerable().FirstOrDefaultAsync(c => c.ChampionOwner == ulong.Parse(user.Id.ToString()) && c.ChampionID == champID);
+
+                if(champ == null)
+                {
+                    throw new Exception("The champion you're searching for does not exist");
+                }
+
+                ChampionsResponse myChamp = new ChampionsResponse
+                {
+                    ChampionLevel = champ.ChampionLevel,
+                    ChampionExp = champ.ChampionExp,
+                    ChampionID = champID,
+                    ChampionOwner = champ.ChampionOwner,
+                    ChampionTier = champ.ChampionTier
                 };
+
+                return myChamp;
+            }
+            catch (Exception ex)
+            {
+                await _log.ManualLog(new LogMessage
+                {
+                    Severity = Discord.LogSeverity.Error,
+                    Message = ex.Message,
+                    TriggerClass = nameof(ChampionService),
+                    TriggerFunction = nameof(GetMyChamps)
+                });
                 return null;
             }
         }
@@ -337,13 +375,13 @@ namespace LeagueDiscordBot.Services
         {
             try
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Info,
                     Message = "Generating a list of champion tiers",
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetTierList)
-                };
+                });
 
                 var getTier = await _db.ChampionTier.AsAsyncEnumerable().ToListAsync();
                 Dictionary<int, string> tierList = new Dictionary<int, string>();
@@ -357,13 +395,13 @@ namespace LeagueDiscordBot.Services
             }
             catch (Exception ex)
             {
-                var log = new LogMessage
+                await _log.ManualLog(new LogMessage
                 {
                     Severity = Discord.LogSeverity.Error,
                     Message = ex.Message,
                     TriggerClass = nameof(ChampionService),
                     TriggerFunction = nameof(GetTierList)
-                };
+                });
 
                 return null;
             }

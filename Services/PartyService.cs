@@ -11,6 +11,7 @@ namespace LeagueDiscordBot.Services
     /// </summary>
     public class PartyService
     {
+
         // TODO: Party service should set up the formation and allow the player to manage their setups.  This will later include equips.
     }
 }

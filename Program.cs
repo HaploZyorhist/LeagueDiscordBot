@@ -45,7 +45,6 @@ namespace LeagueDiscordBot
 
                 // Custom Services
                 .AddSingleton<CommandHandlerService>()
-                .AddSingleton<InteractivityService>()
                 .AddSingleton<LockOutService>()
                 .AddSingleton<RegistrationService>()
                 .AddSingleton<LogService>()
@@ -56,7 +55,10 @@ namespace LeagueDiscordBot
                 .AddDbContext<LoLBotContext>(options =>
                                              options.UseSqlServer(Environment.GetEnvironmentVariable("DBConnection")))
 
-                .BuildServiceProvider();
+				.AddSingleton<InteractivityService>()
+				.AddSingleton(new InteractivityConfig { DefaultTimeout = TimeSpan.FromSeconds(30)})
+
+				.BuildServiceProvider();
 		}
 	}
 }
